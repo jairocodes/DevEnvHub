@@ -22,6 +22,9 @@ htmlcov/
 # Docker
 docker/volumes/
 
+# Runtime environment workspaces
+/data/
+
 # IDE
 .vscode/
 .idea/

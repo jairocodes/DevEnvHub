@@ -1,0 +1,7 @@
+name: node
+language: Node.js
+description: Entorno Node.js con Postgres y Redis
+default_port: 3000
+env:
+  - DATABASE_URL
+  - REDIS_URL

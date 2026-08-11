@@ -14,7 +14,7 @@ En construcción activa. Progreso:
 - [x] Template de entorno end-to-end (Node): `templates/node/` + `ComposeService`/`DockerService` reales, creación/listado/borrado de entornos, logs en vivo por WebSocket.
 - [x] Auth JWT real: registro/login (`/auth/register`, `/auth/login`), entornos protegidos y aislados por usuario (`devenv login`, `devenv register`).
 - [x] Template Django (proyecto Django minimal real, SQLite por defecto).
-- [ ] Template Laravel.
+- [x] Template Laravel (entorno PHP listo para recibir un proyecto Laravel real; starter con servidor built-in de PHP).
 - [ ] Template Spring.
 - [ ] Métricas de uso (CPU/memoria/uptime vía Docker stats).
 - [ ] Multi-tenant a nivel de infraestructura (namespaces/quotas por usuario).

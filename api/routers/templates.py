@@ -11,7 +11,7 @@ def _load_templates() -> list[dict]:
     for entry in sorted(TEMPLATES_DIR.iterdir()):
         manifest = entry / "template.yaml"
         if manifest.is_file():
-            templates.append(yaml.safe_load(manifest.read_text()))
+            templates.append(yaml.safe_load(manifest.read_text(encoding="utf-8")))
     return templates
 
 

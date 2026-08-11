@@ -2,6 +2,7 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
+from typing import ClassVar
 
 from jinja2 import Template
 
@@ -11,14 +12,22 @@ class ComposeError(RuntimeError):
 
 
 class ComposeService:
+    RENDERED_FILES: ClassVar[set[str]] = {
+        "docker-compose.yml",
+        "Dockerfile",
+        "Dockerfile.fpm",
+        "pom.xml",
+        "nginx.conf",
+    }
+
     def prepare_workspace(self, template_dir: Path, workspace: Path, context: dict) -> Path:
         workspace.mkdir(parents=True, exist_ok=True)
         for item in template_dir.iterdir():
             if item.name in ("template.yaml", "README.md"):
                 continue
-            if item.name == "docker-compose.yml":
-                rendered = Template(item.read_text()).render(**context)
-                (workspace / item.name).write_text(rendered)
+            if item.name in self.RENDERED_FILES:
+                rendered = Template(item.read_text(encoding="utf-8")).render(**context)
+                (workspace / item.name).write_text(rendered, encoding="utf-8")
             elif item.is_dir():
                 shutil.copytree(
                     item,

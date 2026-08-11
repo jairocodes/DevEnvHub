@@ -133,6 +133,55 @@ def test_environment_quota_enforced(monkeypatch) -> None:
     assert over_quota_response.status_code == 429
 
 
+def test_create_environment_with_custom_options(monkeypatch) -> None:
+    captured_context = {}
+
+    def _fake_prepare_workspace(template_dir, workspace, context):
+        captured_context.update(context)
+        return Path("fake-compose.yml")
+
+    monkeypatch.setattr(
+        environments_router.compose_service, "prepare_workspace", _fake_prepare_workspace
+    )
+    monkeypatch.setattr(environments_router.compose_service, "up", lambda *args, **kwargs: None)
+
+    headers = _auth_headers("options-env@example.com")
+    response = client.post(
+        "/environments",
+        json={
+            "name": "laravel-fpm",
+            "template": "laravel",
+            "options": {"server": "nginx-fpm", "include_redis": False},
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert captured_context["server"] == "nginx-fpm"
+    assert captured_context["include_redis"] is False
+    assert captured_context["include_postgres"] is True  # default, not overridden
+    assert captured_context["runtime_version"] == "8.3"  # default
+
+
+def test_create_environment_unknown_option_rejected() -> None:
+    headers = _auth_headers("bad-option-env@example.com")
+    response = client.post(
+        "/environments",
+        json={"name": "x", "template": "node", "options": {"not_a_real_option": True}},
+        headers=headers,
+    )
+    assert response.status_code == 422
+
+
+def test_create_environment_invalid_choice_rejected() -> None:
+    headers = _auth_headers("bad-choice-env@example.com")
+    response = client.post(
+        "/environments",
+        json={"name": "x", "template": "node", "options": {"runtime_version": "999"}},
+        headers=headers,
+    )
+    assert response.status_code == 422
+
+
 def test_create_environment_unknown_template() -> None:
     headers = _auth_headers("env-unknown-template@example.com")
     response = client.post(

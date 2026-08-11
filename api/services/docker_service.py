@@ -61,7 +61,15 @@ def _uptime_seconds(started_at: str) -> int:
 
 class DockerService:
     def __init__(self) -> None:
-        self.client = docker.from_env()
+        self._client = None
+
+    @property
+    def client(self) -> docker.DockerClient:
+        # Connecting lazily means importing this module (and api.main, and
+        # every test that imports it) doesn't require a running Docker daemon.
+        if self._client is None:
+            self._client = docker.from_env()
+        return self._client
 
     def ping(self) -> bool:
         return self.client.ping()
@@ -84,6 +92,12 @@ class DockerService:
         containers = self.list_containers(project_name)
         if not containers:
             return
-        container = containers[0]
+        # Environments can have more than one container (app + nginx +
+        # postgres + redis); prefer the main "app" service over an
+        # arbitrary one when it exists.
+        container = next(
+            (c for c in containers if c.labels.get("com.docker.compose.service") == "app"),
+            containers[0],
+        )
         for chunk in container.logs(stream=True, follow=True, tail=100):
             yield chunk.decode("utf-8", errors="replace").rstrip("\n")

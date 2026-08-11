@@ -39,6 +39,28 @@ def _allocate_port(db: Session, default_port: int) -> int:
     return port
 
 
+def _resolve_options(manifest: dict, submitted: dict[str, str | bool]) -> dict[str, str | bool]:
+    declared = {option["key"]: option for option in manifest.get("options", [])}
+    unknown = set(submitted) - set(declared)
+    if unknown:
+        raise HTTPException(
+            status_code=422, detail=f"Unknown template option(s): {', '.join(sorted(unknown))}"
+        )
+
+    resolved: dict[str, str | bool] = {}
+    for key, option in declared.items():
+        value = submitted.get(key, option["default"])
+        if option["type"] == "choice" and value not in option["choices"]:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid value for '{key}': must be one of {option['choices']}",
+            )
+        if option["type"] == "boolean" and not isinstance(value, bool):
+            raise HTTPException(status_code=422, detail=f"Invalid value for '{key}': must be true/false")
+        resolved[key] = value
+    return resolved
+
+
 @router.get("", response_model=list[EnvironmentOut])
 def list_environments(db: DbSession, current_user: CurrentUser) -> list[Environment]:
     return list(db.scalars(select(Environment).where(Environment.user_id == current_user.id)))
@@ -64,7 +86,8 @@ def create_environment(
     manifest_file = template_dir / "template.yaml"
     if not manifest_file.is_file():
         raise HTTPException(status_code=404, detail=f"Unknown template '{payload.template}'")
-    manifest = yaml.safe_load(manifest_file.read_text())
+    manifest = yaml.safe_load(manifest_file.read_text(encoding="utf-8"))
+    options = _resolve_options(manifest, payload.options)
 
     project_name = f"devenv-{current_user.id}-{payload.name}"
     port = _allocate_port(db, manifest["default_port"])
@@ -88,7 +111,7 @@ def create_environment(
         compose_file = compose_service.prepare_workspace(
             template_dir,
             workspace,
-            {"port": port, "cpu_limit": cpu_limit, "mem_limit_mb": mem_limit_mb},
+            {"port": port, "cpu_limit": cpu_limit, "mem_limit_mb": mem_limit_mb, **options},
         )
         compose_service.up(compose_file, project_name)
     except ComposeError as exc:

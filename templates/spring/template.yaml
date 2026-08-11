@@ -5,3 +5,17 @@ default_port: 8081
 env:
   - DATABASE_URL
   - REDIS_URL
+options:
+  - key: runtime_version
+    label: "Versión de Java"
+    type: choice
+    choices: ["17", "21"]
+    default: "21"
+  - key: include_postgres
+    label: "Incluir Postgres"
+    type: boolean
+    default: true
+  - key: include_redis
+    label: "Incluir Redis"
+    type: boolean
+    default: true

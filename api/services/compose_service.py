@@ -12,7 +12,7 @@ class ComposeError(RuntimeError):
 
 
 class ComposeService:
-    RENDERED_FILES: ClassVar[set[str]] = {"docker-compose.yml", "Dockerfile"}
+    RENDERED_FILES: ClassVar[set[str]] = {"docker-compose.yml", "Dockerfile", "pom.xml", "nginx.conf"}
 
     def prepare_workspace(self, template_dir: Path, workspace: Path, context: dict) -> Path:
         workspace.mkdir(parents=True, exist_ok=True)

@@ -61,11 +61,33 @@ def login(email: str, password: str) -> None:
 @cli.command()
 @click.argument("name")
 @click.option("--template", required=True, help="Template a usar (ej. node)")
-def up(name: str, template: str) -> None:
+@click.option(
+    "--set",
+    "set_options",
+    multiple=True,
+    metavar="KEY=VALUE",
+    help="Fija una opción del template sin preguntar (repetible, ej. --set include_redis=false)",
+)
+@click.option(
+    "-y",
+    "--yes",
+    is_flag=True,
+    help="No preguntar interactivamente; usa los defaults del template para lo no fijado con --set",
+)
+def up(name: str, template: str, set_options: tuple[str, ...], yes: bool) -> None:
     """Levanta un entorno a partir de un template."""
+    provided: dict[str, str] = {}
+    for item in set_options:
+        if "=" not in item:
+            raise click.ClickException(f"--set espera key=value, recibido: '{item}'")
+        key, value = item.split("=", 1)
+        provided[key] = value
+
+    options = _resolve_template_options(template, provided, interactive=not yes)
+
     response = httpx.post(
         f"{API_BASE_URL}/environments",
-        json={"name": name, "template": template},
+        json={"name": name, "template": template, "options": options},
         headers=_auth_headers(),
         timeout=600,
     )
@@ -73,6 +95,42 @@ def up(name: str, template: str) -> None:
         raise click.ClickException(response.json().get("detail", response.text))
     env = response.json()
     click.echo(f"Environment '{env['name']}' running on port {env['port']}")
+
+
+def _resolve_template_options(
+    template: str, provided: dict[str, str], interactive: bool
+) -> dict[str, str | bool]:
+    response = httpx.get(f"{API_BASE_URL}/templates", timeout=30)
+    response.raise_for_status()
+    manifest = next((t for t in response.json() if t["name"] == template), None)
+    if manifest is None:
+        raise click.ClickException(f"Unknown template '{template}'")
+
+    resolved: dict[str, str | bool] = {}
+    for option in manifest.get("options", []):
+        key = option["key"]
+        if key in provided:
+            resolved[key] = _coerce_option_value(option, provided[key])
+        elif interactive:
+            resolved[key] = _prompt_for_option(option)
+    return resolved
+
+
+def _coerce_option_value(option: dict, raw: str) -> str | bool:
+    if option["type"] == "boolean":
+        return raw.strip().lower() in ("1", "true", "yes", "y")
+    return raw
+
+
+def _prompt_for_option(option: dict) -> str | bool:
+    label = option.get("label", option["key"])
+    if option["type"] == "boolean":
+        return click.confirm(label, default=option.get("default", False))
+    if option["type"] == "choice":
+        return click.prompt(
+            label, type=click.Choice(option["choices"]), default=option.get("default")
+        )
+    return click.prompt(label, default=option.get("default"))
 
 
 @cli.command()

@@ -67,7 +67,7 @@ def up(name: str, template: str) -> None:
         f"{API_BASE_URL}/environments",
         json={"name": name, "template": template},
         headers=_auth_headers(),
-        timeout=120,
+        timeout=600,
     )
     if response.status_code >= 400:
         raise click.ClickException(response.json().get("detail", response.text))

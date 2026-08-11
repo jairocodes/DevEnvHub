@@ -13,9 +13,12 @@ En construcción activa. Progreso:
 - [x] Scaffolding: API FastAPI, CLI Click, Docker Compose de desarrollo (Postgres/Redis), tests, Gitflow.
 - [x] Template de entorno end-to-end (Node): `templates/node/` + `ComposeService`/`DockerService` reales, creación/listado/borrado de entornos, logs en vivo por WebSocket.
 - [x] Auth JWT real: registro/login (`/auth/register`, `/auth/login`), entornos protegidos y aislados por usuario (`devenv login`, `devenv register`).
-- [ ] Templates adicionales (Django, Laravel, Spring).
+- [x] Template Django (proyecto Django minimal real, SQLite por defecto).
+- [ ] Template Laravel.
+- [ ] Template Spring.
 - [ ] Métricas de uso (CPU/memoria/uptime vía Docker stats).
 - [ ] Multi-tenant a nivel de infraestructura (namespaces/quotas por usuario).
+- [ ] Personalización interactiva de templates (elegir servicios/variantes al crear un entorno, ej. Laravel con Nginx+PHP-FPM vs. servidor simple).
 
 ## Flujo de ramas
 

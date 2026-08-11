@@ -86,7 +86,7 @@ def create_environment(
     manifest_file = template_dir / "template.yaml"
     if not manifest_file.is_file():
         raise HTTPException(status_code=404, detail=f"Unknown template '{payload.template}'")
-    manifest = yaml.safe_load(manifest_file.read_text())
+    manifest = yaml.safe_load(manifest_file.read_text(encoding="utf-8"))
     options = _resolve_options(manifest, payload.options)
 
     project_name = f"devenv-{current_user.id}-{payload.name}"

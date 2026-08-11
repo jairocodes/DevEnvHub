@@ -26,8 +26,8 @@ class ComposeService:
             if item.name in ("template.yaml", "README.md"):
                 continue
             if item.name in self.RENDERED_FILES:
-                rendered = Template(item.read_text()).render(**context)
-                (workspace / item.name).write_text(rendered)
+                rendered = Template(item.read_text(encoding="utf-8")).render(**context)
+                (workspace / item.name).write_text(rendered, encoding="utf-8")
             elif item.is_dir():
                 shutil.copytree(
                     item,

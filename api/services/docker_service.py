@@ -1,8 +1,22 @@
 import re
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
 import docker
+
+
+def _container_stats(container) -> dict:
+    stats = container.stats(stream=False)
+    mem_usage_mb, mem_limit_mb, mem_percent = _memory_stats(stats)
+    return {
+        "service": container.labels.get("com.docker.compose.service", container.name),
+        "cpu_percent": _cpu_percent(stats),
+        "mem_usage_mb": mem_usage_mb,
+        "mem_limit_mb": mem_limit_mb,
+        "mem_percent": mem_percent,
+        "uptime_seconds": _uptime_seconds(container.attrs["State"]["StartedAt"]),
+    }
 
 
 def _cpu_percent(stats: dict) -> float:
@@ -58,21 +72,13 @@ class DockerService:
         )
 
     def get_stats(self, project_name: str) -> list[dict]:
-        results = []
-        for container in self.list_containers(project_name):
-            stats = container.stats(stream=False)
-            mem_usage_mb, mem_limit_mb, mem_percent = _memory_stats(stats)
-            results.append(
-                {
-                    "service": container.labels.get("com.docker.compose.service", container.name),
-                    "cpu_percent": _cpu_percent(stats),
-                    "mem_usage_mb": mem_usage_mb,
-                    "mem_limit_mb": mem_limit_mb,
-                    "mem_percent": mem_percent,
-                    "uptime_seconds": _uptime_seconds(container.attrs["State"]["StartedAt"]),
-                }
-            )
-        return results
+        containers = self.list_containers(project_name)
+        if not containers:
+            return []
+        # container.stats(stream=False) takes ~1-2s each; fetching them
+        # concurrently keeps a multi-service environment's snapshot fast.
+        with ThreadPoolExecutor(max_workers=len(containers)) as executor:
+            return list(executor.map(_container_stats, containers))
 
     def stream_logs(self, project_name: str) -> Iterator[str]:
         containers = self.list_containers(project_name)

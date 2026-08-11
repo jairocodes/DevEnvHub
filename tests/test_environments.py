@@ -95,6 +95,22 @@ def test_create_environment_with_laravel_template(monkeypatch) -> None:
     assert response.json()["port"] == 8080
 
 
+def test_create_environment_with_spring_template(monkeypatch) -> None:
+    monkeypatch.setattr(
+        environments_router.compose_service,
+        "prepare_workspace",
+        lambda *args, **kwargs: Path("fake-compose.yml"),
+    )
+    monkeypatch.setattr(environments_router.compose_service, "up", lambda *args, **kwargs: None)
+
+    headers = _auth_headers("spring-env@example.com")
+    response = client.post(
+        "/environments", json={"name": "spring-demo", "template": "spring"}, headers=headers
+    )
+    assert response.status_code == 201
+    assert response.json()["port"] == 8081
+
+
 def test_create_environment_unknown_template() -> None:
     headers = _auth_headers("env-unknown-template@example.com")
     response = client.post(

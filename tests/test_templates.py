@@ -24,3 +24,10 @@ def test_list_templates_includes_laravel() -> None:
     assert response.status_code == 200
     names = [t["name"] for t in response.json()]
     assert "laravel" in names
+
+
+def test_list_templates_includes_spring() -> None:
+    response = client.get("/templates")
+    assert response.status_code == 200
+    names = [t["name"] for t in response.json()]
+    assert "spring" in names

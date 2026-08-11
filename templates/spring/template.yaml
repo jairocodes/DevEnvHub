@@ -1,0 +1,7 @@
+name: spring
+language: Java (Spring Boot)
+description: Entorno Spring Boot con Postgres y Redis
+default_port: 8081
+env:
+  - DATABASE_URL
+  - REDIS_URL

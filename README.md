@@ -20,7 +20,10 @@ En construcción activa. Progreso:
 - [x] Multi-tenant a nivel de infraestructura:
   - Namespaces: cada entorno usa su propio Compose project name (`devenv-{user_id}-{name}`), lo que le da red/contenedores/volúmenes aislados por entorno (más fino que por usuario) desde el primer template.
   - Quotas: tope de entornos concurrentes y límites de CPU/memoria por contenedor, con override opcional por usuario (`users.max_environments/cpu_limit/mem_limit_mb`, `NULL` = default global en `Settings`).
-- [ ] Personalización interactiva de templates (elegir servicios/variantes al crear un entorno, ej. Laravel con Nginx+PHP-FPM vs. servidor simple).
+- [x] Personalización interactiva de templates (estilo Spring Initializr, solo CLI — no hay UI web):
+  - `template.yaml` declara `options` (versión de runtime, incluir Postgres/Redis, y en Laravel el servidor: PHP built-in simple vs. Nginx+PHP-FPM real).
+  - `devenv up` pregunta cada opción interactivamente, o se puede fijar sin prompts con `--set key=value` / `--yes`.
+  - El servidor valida las opciones contra lo declarado en el template y renderiza el `docker-compose.yml`/`Dockerfile` condicionalmente con Jinja2.
 - [ ] Rol admin para gestionar las quotas por usuario (hoy los overrides solo se pueden setear directo en la base de datos).
 
 ## Flujo de ramas

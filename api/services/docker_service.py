@@ -92,6 +92,12 @@ class DockerService:
         containers = self.list_containers(project_name)
         if not containers:
             return
-        container = containers[0]
+        # Environments can have more than one container (app + nginx +
+        # postgres + redis); prefer the main "app" service over an
+        # arbitrary one when it exists.
+        container = next(
+            (c for c in containers if c.labels.get("com.docker.compose.service") == "app"),
+            containers[0],
+        )
         for chunk in container.logs(stream=True, follow=True, tail=100):
             yield chunk.decode("utf-8", errors="replace").rstrip("\n")

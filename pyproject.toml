@@ -1,6 +1,6 @@
 [project]
 name = "devenv-hub"
-version = "0.1.0"
+version = "1.0.0"
 description = "CLI + API REST para definir, compartir y levantar entornos de desarrollo reproducibles con Docker Compose"
 readme = "README.md"
 requires-python = ">=3.12"

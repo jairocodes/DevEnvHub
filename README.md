@@ -16,7 +16,7 @@ En construcción activa. Progreso:
 - [x] Template Django (proyecto Django minimal real, SQLite por defecto).
 - [x] Template Laravel (entorno PHP listo para recibir un proyecto Laravel real; starter con servidor built-in de PHP).
 - [x] Template Spring (Spring Boot minimal real con Maven).
-- [ ] Métricas de uso (CPU/memoria/uptime vía Docker stats).
+- [x] Métricas de uso en vivo (CPU/memoria/uptime por contenedor vía Docker stats, WebSocket + `devenv stats`).
 - [ ] Multi-tenant a nivel de infraestructura (namespaces/quotas por usuario).
 - [ ] Personalización interactiva de templates (elegir servicios/variantes al crear un entorno, ej. Laravel con Nginx+PHP-FPM vs. servidor simple).
 

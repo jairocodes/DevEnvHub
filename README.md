@@ -27,6 +27,12 @@ En construcción activa. Progreso:
 - [x] Rol admin para gestionar quotas por usuario:
   - Bootstrap sin UI: `ADMIN_EMAILS` (allowlist por email) promueve automáticamente a admin en el siguiente login — sin endpoint de "promover a admin" para no abrir superficie de escalamiento de privilegios.
   - `GET /admin/users` / `PATCH /admin/users/{id}/quota` (protegidos, 403 si no es admin) y `devenv admin users` / `devenv admin set-quota <email>` en el CLI.
+- [x] Documentación completa: manual de usuario y manual técnico (ver abajo).
+
+## Documentación
+
+- [Manual de usuario](docs/user-manual.md) — todas las acciones del CLI, para cuentas normales y admin.
+- [Manual técnico](docs/technical-manual.md) — arquitectura completa, modelo de datos, API, orquestación de Docker, flujo interno.
 
 ## Flujo de ramas
 

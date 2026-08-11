@@ -8,3 +8,22 @@ default_port: 8080
 env:
   - DATABASE_URL
   - REDIS_URL
+options:
+  - key: runtime_version
+    label: "Versión de PHP"
+    type: choice
+    choices: ["8.2", "8.3"]
+    default: "8.3"
+  - key: server
+    label: "Servidor web"
+    type: choice
+    choices: ["simple", "nginx-fpm"]
+    default: "simple"
+  - key: include_postgres
+    label: "Incluir Postgres"
+    type: boolean
+    default: true
+  - key: include_redis
+    label: "Incluir Redis"
+    type: boolean
+    default: true

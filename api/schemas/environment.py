@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 class EnvironmentCreate(BaseModel):
     name: str
     template: str
+    options: dict[str, str | bool] = {}
 
 
 class EnvironmentOut(BaseModel):

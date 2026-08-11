@@ -8,7 +8,7 @@ Python · FastAPI · Docker SDK · Docker Compose · PostgreSQL · Redis · JWT 
 
 ## Estado
 
-En construcción activa. Progreso:
+**v1.0.0** — core funcional completo. Progreso:
 
 - [x] Scaffolding: API FastAPI, CLI Click, Docker Compose de desarrollo (Postgres/Redis), tests, Gitflow.
 - [x] Template de entorno end-to-end (Node): `templates/node/` + `ComposeService`/`DockerService` reales, creación/listado/borrado de entornos, logs en vivo por WebSocket.

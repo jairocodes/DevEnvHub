@@ -59,6 +59,14 @@ def login(email: str, password: str) -> None:
 
 
 @cli.command()
+def logout() -> None:
+    """Borra el token guardado localmente."""
+    if CONFIG_PATH.is_file():
+        CONFIG_PATH.unlink()
+    click.echo("Logged out.")
+
+
+@cli.command()
 @click.argument("name")
 @click.option("--template", required=True, help="Template a usar (ej. node)")
 @click.option(

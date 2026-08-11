@@ -79,6 +79,22 @@ def test_create_environment_with_django_template(monkeypatch) -> None:
     assert response.json()["port"] == 8000
 
 
+def test_create_environment_with_laravel_template(monkeypatch) -> None:
+    monkeypatch.setattr(
+        environments_router.compose_service,
+        "prepare_workspace",
+        lambda *args, **kwargs: Path("fake-compose.yml"),
+    )
+    monkeypatch.setattr(environments_router.compose_service, "up", lambda *args, **kwargs: None)
+
+    headers = _auth_headers("laravel-env@example.com")
+    response = client.post(
+        "/environments", json={"name": "laravel-demo", "template": "laravel"}, headers=headers
+    )
+    assert response.status_code == 201
+    assert response.json()["port"] == 8080
+
+
 def test_create_environment_unknown_template() -> None:
     headers = _auth_headers("env-unknown-template@example.com")
     response = client.post(

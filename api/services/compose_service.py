@@ -19,6 +19,13 @@ class ComposeService:
             if item.name == "docker-compose.yml":
                 rendered = Template(item.read_text()).render(**context)
                 (workspace / item.name).write_text(rendered)
+            elif item.is_dir():
+                shutil.copytree(
+                    item,
+                    workspace / item.name,
+                    dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+                )
             else:
                 shutil.copy(item, workspace / item.name)
         return workspace / "docker-compose.yml"

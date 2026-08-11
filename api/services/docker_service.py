@@ -35,7 +35,7 @@ def _memory_stats(stats: dict) -> tuple[float, float, float]:
 def _parse_docker_time(value: str) -> datetime:
     # Docker reports nanosecond precision; datetime.fromisoformat only accepts up to 6 digits.
     value = re.sub(r"(\.\d{6})\d*Z$", r"\1Z", value)
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return datetime.fromisoformat(value)
 
 
 def _uptime_seconds(started_at: str) -> int:

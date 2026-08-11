@@ -1,0 +1,7 @@
+name: django
+language: Python (Django)
+description: Entorno Django con Postgres y Redis
+default_port: 8000
+env:
+  - DATABASE_URL
+  - REDIS_URL

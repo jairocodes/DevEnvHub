@@ -52,7 +52,7 @@ def test_memory_stats_subtracts_cache() -> None:
 
 
 def test_memory_stats_missing_fields_defaults_to_zero() -> None:
-    usage_mb, limit_mb, mem_percent = _memory_stats({})
+    usage_mb, _limit_mb, mem_percent = _memory_stats({})
     assert usage_mb == 0.0
     assert mem_percent == 0.0
 

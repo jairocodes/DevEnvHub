@@ -4,7 +4,7 @@ from typing import Annotated
 
 import yaml
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from api.core.config import settings
@@ -48,6 +48,18 @@ def list_environments(db: DbSession, current_user: CurrentUser) -> list[Environm
 def create_environment(
     payload: EnvironmentCreate, db: DbSession, current_user: CurrentUser
 ) -> Environment:
+    max_environments = current_user.max_environments or settings.default_max_environments
+    running_count = db.scalar(
+        select(func.count())
+        .select_from(Environment)
+        .where(Environment.user_id == current_user.id, Environment.status == "running")
+    )
+    if running_count >= max_environments:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Environment quota exceeded ({max_environments} running environments max)",
+        )
+
     template_dir = TEMPLATES_DIR / payload.template
     manifest_file = template_dir / "template.yaml"
     if not manifest_file.is_file():
@@ -56,6 +68,8 @@ def create_environment(
 
     project_name = f"devenv-{current_user.id}-{payload.name}"
     port = _allocate_port(db, manifest["default_port"])
+    cpu_limit = current_user.cpu_limit or settings.default_cpu_limit
+    mem_limit_mb = current_user.mem_limit_mb or settings.default_mem_limit_mb
 
     environment = Environment(
         user_id=current_user.id,
@@ -71,7 +85,11 @@ def create_environment(
 
     workspace = _workspace_for(current_user.id, payload.name)
     try:
-        compose_file = compose_service.prepare_workspace(template_dir, workspace, {"port": port})
+        compose_file = compose_service.prepare_workspace(
+            template_dir,
+            workspace,
+            {"port": port, "cpu_limit": cpu_limit, "mem_limit_mb": mem_limit_mb},
+        )
         compose_service.up(compose_file, project_name)
     except ComposeError as exc:
         environment.status = "error"

@@ -146,16 +146,33 @@ def ls() -> None:
         click.echo(f"{env['id']}\t{env['name']}\t{env['template']}\t{env['status']}\tport {env['port']}")
 
 
-@cli.command()
-@click.argument("name")
-def logs(name: str) -> None:
-    """Muestra los logs en vivo de un entorno."""
+def _find_environment(name: str) -> dict:
     response = httpx.get(f"{API_BASE_URL}/environments", headers=_auth_headers(), timeout=30)
     response.raise_for_status()
     match = next((env for env in response.json() if env["name"] == name), None)
     if match is None:
         raise click.ClickException(f"Environment '{name}' not found")
+    return match
 
+
+@cli.command()
+@click.argument("name")
+def down(name: str) -> None:
+    """Detiene y elimina un entorno."""
+    match = _find_environment(name)
+    response = httpx.delete(
+        f"{API_BASE_URL}/environments/{match['id']}", headers=_auth_headers(), timeout=120
+    )
+    if response.status_code >= 400:
+        raise click.ClickException(response.json().get("detail", response.text))
+    click.echo(f"Environment '{name}' removed.")
+
+
+@cli.command()
+@click.argument("name")
+def logs(name: str) -> None:
+    """Muestra los logs en vivo de un entorno."""
+    match = _find_environment(name)
     ws_url = f"{API_BASE_URL.replace('http', 'ws', 1)}/environments/{match['id']}/logs?token={_load_token()}"
     asyncio.run(_print_logs(ws_url))
 
@@ -170,12 +187,7 @@ async def _print_logs(ws_url: str) -> None:
 @click.argument("name")
 def stats(name: str) -> None:
     """Muestra métricas de uso (CPU/memoria/uptime) en vivo de un entorno."""
-    response = httpx.get(f"{API_BASE_URL}/environments", headers=_auth_headers(), timeout=30)
-    response.raise_for_status()
-    match = next((env for env in response.json() if env["name"] == name), None)
-    if match is None:
-        raise click.ClickException(f"Environment '{name}' not found")
-
+    match = _find_environment(name)
     ws_url = f"{API_BASE_URL.replace('http', 'ws', 1)}/environments/{match['id']}/metrics?token={_load_token()}"
     asyncio.run(_print_metrics(ws_url))
 

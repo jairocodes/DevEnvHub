@@ -1,0 +1,10 @@
+name: laravel
+language: PHP (Laravel-ready)
+description: >-
+  Entorno PHP con Postgres y Redis, listo para un proyecto Laravel. Usa el
+  servidor built-in de PHP como starter (no incluye el framework completo);
+  monta tu propio código de Laravel sobre el workspace del entorno.
+default_port: 8080
+env:
+  - DATABASE_URL
+  - REDIS_URL

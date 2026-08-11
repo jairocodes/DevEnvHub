@@ -108,5 +108,34 @@ async def _print_logs(ws_url: str) -> None:
             click.echo(line)
 
 
+@cli.command()
+@click.argument("name")
+def stats(name: str) -> None:
+    """Muestra métricas de uso (CPU/memoria/uptime) en vivo de un entorno."""
+    response = httpx.get(f"{API_BASE_URL}/environments", headers=_auth_headers(), timeout=30)
+    response.raise_for_status()
+    match = next((env for env in response.json() if env["name"] == name), None)
+    if match is None:
+        raise click.ClickException(f"Environment '{name}' not found")
+
+    ws_url = f"{API_BASE_URL.replace('http', 'ws', 1)}/environments/{match['id']}/metrics?token={_load_token()}"
+    asyncio.run(_print_metrics(ws_url))
+
+
+async def _print_metrics(ws_url: str) -> None:
+    async with websockets.connect(ws_url) as websocket:
+        async for message in websocket:
+            data = json.loads(message)
+            for container in data["containers"]:
+                click.echo(
+                    f"{container['service']}\t"
+                    f"cpu {container['cpu_percent']}%\t"
+                    f"mem {container['mem_usage_mb']}/{container['mem_limit_mb']} MB "
+                    f"({container['mem_percent']}%)\t"
+                    f"uptime {container['uptime_seconds']}s"
+                )
+            click.echo("---")
+
+
 if __name__ == "__main__":
     cli()

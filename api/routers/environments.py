@@ -125,3 +125,27 @@ async def stream_logs(
             await websocket.send_text(line)
     except WebSocketDisconnect:
         pass
+
+
+@router.websocket("/{environment_id}/metrics")
+async def stream_metrics(
+    websocket: WebSocket, environment_id: int, db: DbSession, token: str | None = None
+) -> None:
+    current_user = get_current_user_ws(token, db) if token else None
+    if current_user is None:
+        await websocket.close(code=4001)
+        return
+
+    environment = db.get(Environment, environment_id)
+    if environment is None or environment.user_id != current_user.id:
+        await websocket.close(code=4004)
+        return
+
+    await websocket.accept()
+    try:
+        while True:
+            containers = await asyncio.to_thread(docker_service.get_stats, environment.project_name)
+            await websocket.send_json({"containers": containers})
+            await asyncio.sleep(2)
+    except WebSocketDisconnect:
+        pass

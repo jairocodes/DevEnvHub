@@ -10,3 +10,10 @@ def test_list_templates_includes_node() -> None:
     assert response.status_code == 200
     names = [t["name"] for t in response.json()]
     assert "node" in names
+
+
+def test_list_templates_includes_django() -> None:
+    response = client.get("/templates")
+    assert response.status_code == 200
+    names = [t["name"] for t in response.json()]
+    assert "django" in names

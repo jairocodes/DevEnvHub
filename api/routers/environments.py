@@ -8,23 +8,20 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from api.core.config import settings
+from api.core.deps import DbSession, get_current_user, get_current_user_ws
 from api.core.paths import BASE_DIR, TEMPLATES_DIR
-from api.db.session import get_db
 from api.models.environment import Environment
+from api.models.user import User
 from api.schemas.environment import EnvironmentCreate, EnvironmentOut
 from api.services.compose_service import ComposeError, ComposeService
 from api.services.docker_service import DockerService
 
 router = APIRouter(prefix="/environments", tags=["environments"])
 
-DbSession = Annotated[Session, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 compose_service = ComposeService()
 docker_service = DockerService()
-
-# Auth isn't wired up yet (see api/core/security.py) — every environment is
-# scoped to this placeholder user until JWT auth lands on these endpoints.
-CURRENT_USER_ID = 1
 
 
 def _workspace_for(user_id: int, name: str) -> Path:
@@ -43,23 +40,25 @@ def _allocate_port(db: Session, default_port: int) -> int:
 
 
 @router.get("", response_model=list[EnvironmentOut])
-def list_environments(db: DbSession) -> list[Environment]:
-    return list(db.scalars(select(Environment).where(Environment.user_id == CURRENT_USER_ID)))
+def list_environments(db: DbSession, current_user: CurrentUser) -> list[Environment]:
+    return list(db.scalars(select(Environment).where(Environment.user_id == current_user.id)))
 
 
 @router.post("", response_model=EnvironmentOut, status_code=201)
-def create_environment(payload: EnvironmentCreate, db: DbSession) -> Environment:
+def create_environment(
+    payload: EnvironmentCreate, db: DbSession, current_user: CurrentUser
+) -> Environment:
     template_dir = TEMPLATES_DIR / payload.template
     manifest_file = template_dir / "template.yaml"
     if not manifest_file.is_file():
         raise HTTPException(status_code=404, detail=f"Unknown template '{payload.template}'")
     manifest = yaml.safe_load(manifest_file.read_text())
 
-    project_name = f"devenv-{CURRENT_USER_ID}-{payload.name}"
+    project_name = f"devenv-{current_user.id}-{payload.name}"
     port = _allocate_port(db, manifest["default_port"])
 
     environment = Environment(
-        user_id=CURRENT_USER_ID,
+        user_id=current_user.id,
         name=payload.name,
         template=payload.template,
         project_name=project_name,
@@ -70,7 +69,7 @@ def create_environment(payload: EnvironmentCreate, db: DbSession) -> Environment
     db.commit()
     db.refresh(environment)
 
-    workspace = _workspace_for(CURRENT_USER_ID, payload.name)
+    workspace = _workspace_for(current_user.id, payload.name)
     try:
         compose_file = compose_service.prepare_workspace(template_dir, workspace, {"port": port})
         compose_service.up(compose_file, project_name)
@@ -86,12 +85,12 @@ def create_environment(payload: EnvironmentCreate, db: DbSession) -> Environment
 
 
 @router.delete("/{environment_id}", status_code=204)
-def delete_environment(environment_id: int, db: DbSession) -> None:
+def delete_environment(environment_id: int, db: DbSession, current_user: CurrentUser) -> None:
     environment = db.get(Environment, environment_id)
-    if environment is None or environment.user_id != CURRENT_USER_ID:
+    if environment is None or environment.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Environment not found")
 
-    workspace = _workspace_for(CURRENT_USER_ID, environment.name)
+    workspace = _workspace_for(current_user.id, environment.name)
     compose_file = workspace / "docker-compose.yml"
     if compose_file.is_file():
         compose_service.down(compose_file, environment.project_name)
@@ -101,9 +100,16 @@ def delete_environment(environment_id: int, db: DbSession) -> None:
 
 
 @router.websocket("/{environment_id}/logs")
-async def stream_logs(websocket: WebSocket, environment_id: int, db: DbSession) -> None:
+async def stream_logs(
+    websocket: WebSocket, environment_id: int, db: DbSession, token: str | None = None
+) -> None:
+    current_user = get_current_user_ws(token, db) if token else None
+    if current_user is None:
+        await websocket.close(code=4001)
+        return
+
     environment = db.get(Environment, environment_id)
-    if environment is None or environment.user_id != CURRENT_USER_ID:
+    if environment is None or environment.user_id != current_user.id:
         await websocket.close(code=4004)
         return
 

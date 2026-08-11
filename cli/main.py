@@ -195,5 +195,84 @@ async def _print_metrics(ws_url: str) -> None:
             click.echo("---")
 
 
+@cli.group()
+def admin() -> None:
+    """Comandos de administración (requiere una cuenta con is_admin)."""
+
+
+@admin.command("users")
+def admin_users() -> None:
+    """Lista todos los usuarios y sus quotas."""
+    response = httpx.get(f"{API_BASE_URL}/admin/users", headers=_auth_headers(), timeout=30)
+    if response.status_code >= 400:
+        raise click.ClickException(response.json().get("detail", response.text))
+    for user in response.json():
+        click.echo(
+            f"{user['id']}\t{user['email']}\tadmin={user['is_admin']}\t"
+            f"max_env={user['max_environments']}\tcpu={user['cpu_limit']}\tmem={user['mem_limit_mb']}"
+        )
+
+
+@admin.command("set-quota")
+@click.argument("email")
+@click.option("--max-environments", type=int, default=None)
+@click.option("--cpu-limit", type=float, default=None)
+@click.option("--mem-limit-mb", type=int, default=None)
+@click.option("--reset-max-environments", is_flag=True)
+@click.option("--reset-cpu-limit", is_flag=True)
+@click.option("--reset-mem-limit-mb", is_flag=True)
+def admin_set_quota(
+    email: str,
+    max_environments: int | None,
+    cpu_limit: float | None,
+    mem_limit_mb: int | None,
+    reset_max_environments: bool,
+    reset_cpu_limit: bool,
+    reset_mem_limit_mb: bool,
+) -> None:
+    """Actualiza el override de quota de un usuario (por email)."""
+    headers = _auth_headers()
+    users_response = httpx.get(f"{API_BASE_URL}/admin/users", headers=headers, timeout=30)
+    if users_response.status_code >= 400:
+        raise click.ClickException(users_response.json().get("detail", users_response.text))
+    match = next((u for u in users_response.json() if u["email"] == email), None)
+    if match is None:
+        raise click.ClickException(f"User '{email}' not found")
+
+    payload: dict[str, int | float | None] = {}
+    if reset_max_environments:
+        payload["max_environments"] = None
+    elif max_environments is not None:
+        payload["max_environments"] = max_environments
+    if reset_cpu_limit:
+        payload["cpu_limit"] = None
+    elif cpu_limit is not None:
+        payload["cpu_limit"] = cpu_limit
+    if reset_mem_limit_mb:
+        payload["mem_limit_mb"] = None
+    elif mem_limit_mb is not None:
+        payload["mem_limit_mb"] = mem_limit_mb
+
+    if not payload:
+        raise click.ClickException(
+            "Nothing to update: pass --max-environments/--cpu-limit/--mem-limit-mb "
+            "or a --reset-* flag"
+        )
+
+    response = httpx.patch(
+        f"{API_BASE_URL}/admin/users/{match['id']}/quota",
+        json=payload,
+        headers=headers,
+        timeout=30,
+    )
+    if response.status_code >= 400:
+        raise click.ClickException(response.json().get("detail", response.text))
+    user = response.json()
+    click.echo(
+        f"Updated {user['email']}: max_environments={user['max_environments']} "
+        f"cpu_limit={user['cpu_limit']} mem_limit_mb={user['mem_limit_mb']}"
+    )
+
+
 if __name__ == "__main__":
     cli()

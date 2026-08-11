@@ -24,7 +24,9 @@ En construcción activa. Progreso:
   - `template.yaml` declara `options` (versión de runtime, incluir Postgres/Redis, y en Laravel el servidor: PHP built-in simple vs. Nginx+PHP-FPM real).
   - `devenv up` pregunta cada opción interactivamente, o se puede fijar sin prompts con `--set key=value` / `--yes`.
   - El servidor valida las opciones contra lo declarado en el template y renderiza el `docker-compose.yml`/`Dockerfile` condicionalmente con Jinja2.
-- [ ] Rol admin para gestionar las quotas por usuario (hoy los overrides solo se pueden setear directo en la base de datos).
+- [x] Rol admin para gestionar quotas por usuario:
+  - Bootstrap sin UI: `ADMIN_EMAILS` (allowlist por email) promueve automáticamente a admin en el siguiente login — sin endpoint de "promover a admin" para no abrir superficie de escalamiento de privilegios.
+  - `GET /admin/users` / `PATCH /admin/users/{id}/quota` (protegidos, 403 si no es admin) y `devenv admin users` / `devenv admin set-quota <email>` en el CLI.
 
 ## Flujo de ramas
 

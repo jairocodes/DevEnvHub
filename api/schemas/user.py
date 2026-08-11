@@ -24,3 +24,21 @@ class UserOut(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class AdminUserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    is_admin: bool
+    max_environments: int | None
+    cpu_limit: float | None
+    mem_limit_mb: int | None
+    created_at: datetime
+
+
+class QuotaUpdate(BaseModel):
+    max_environments: int | None = None
+    cpu_limit: float | None = None
+    mem_limit_mb: int | None = None

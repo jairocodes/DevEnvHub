@@ -1,0 +1,21 @@
+name: django
+language: Python (Django)
+description: Entorno Django con Postgres y Redis
+default_port: 8000
+env:
+  - DATABASE_URL
+  - REDIS_URL
+options:
+  - key: runtime_version
+    label: "Versión de Python"
+    type: choice
+    choices: ["3.11", "3.12", "3.13"]
+    default: "3.12"
+  - key: include_postgres
+    label: "Incluir Postgres"
+    type: boolean
+    default: true
+  - key: include_redis
+    label: "Incluir Redis"
+    type: boolean
+    default: true

@@ -1,0 +1,21 @@
+name: node
+language: Node.js
+description: Entorno Node.js con Postgres y Redis
+default_port: 3000
+env:
+  - DATABASE_URL
+  - REDIS_URL
+options:
+  - key: runtime_version
+    label: "Versión de Node"
+    type: choice
+    choices: ["18", "20", "22"]
+    default: "20"
+  - key: include_postgres
+    label: "Incluir Postgres"
+    type: boolean
+    default: true
+  - key: include_redis
+    label: "Incluir Redis"
+    type: boolean
+    default: true

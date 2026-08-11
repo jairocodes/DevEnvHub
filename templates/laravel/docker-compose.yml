@@ -1,0 +1,96 @@
+services:
+{%- if server == "nginx-fpm" %}
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "{{ port }}:{{ port }}"
+    volumes:
+      - .:/var/www/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php-fpm
+    deploy:
+      resources:
+        limits:
+          cpus: "{{ cpu_limit }}"
+          memory: "{{ mem_limit_mb }}M"
+
+  php-fpm:
+    build:
+      context: .
+      dockerfile: Dockerfile.fpm
+    environment:
+      PORT: "{{ port }}"
+{%- if include_postgres %}
+      DATABASE_URL: postgresql://devenv:devenv@postgres:5432/devenv
+{%- endif %}
+{%- if include_redis %}
+      REDIS_URL: redis://redis:6379/0
+{%- endif %}
+{%- if include_postgres or include_redis %}
+    depends_on:
+{%- if include_postgres %}
+      - postgres
+{%- endif %}
+{%- if include_redis %}
+      - redis
+{%- endif %}
+{%- endif %}
+    volumes:
+      - .:/var/www/html
+    deploy:
+      resources:
+        limits:
+          cpus: "{{ cpu_limit }}"
+          memory: "{{ mem_limit_mb }}M"
+{%- else %}
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "{{ port }}:{{ port }}"
+    environment:
+      PORT: "{{ port }}"
+{%- if include_postgres %}
+      DATABASE_URL: postgresql://devenv:devenv@postgres:5432/devenv
+{%- endif %}
+{%- if include_redis %}
+      REDIS_URL: redis://redis:6379/0
+{%- endif %}
+{%- if include_postgres or include_redis %}
+    depends_on:
+{%- if include_postgres %}
+      - postgres
+{%- endif %}
+{%- if include_redis %}
+      - redis
+{%- endif %}
+{%- endif %}
+    volumes:
+      - .:/app
+    deploy:
+      resources:
+        limits:
+          cpus: "{{ cpu_limit }}"
+          memory: "{{ mem_limit_mb }}M"
+{%- endif %}
+{% if include_postgres %}
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: devenv
+      POSTGRES_PASSWORD: devenv
+      POSTGRES_DB: devenv
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+{% endif %}
+{%- if include_redis %}
+
+  redis:
+    image: redis:7
+{%- endif %}
+{% if include_postgres %}
+volumes:
+  pgdata:
+{% endif %}

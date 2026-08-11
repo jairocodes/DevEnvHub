@@ -1,0 +1,5 @@
+FROM php:{{ runtime_version }}-fpm-alpine
+
+WORKDIR /var/www/html
+
+COPY . .

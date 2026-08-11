@@ -1,0 +1,50 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "{{ port }}:{{ port }}"
+    environment:
+      PORT: "{{ port }}"
+{%- if include_postgres %}
+      DATABASE_URL: postgresql://devenv:devenv@postgres:5432/devenv
+{%- endif %}
+{%- if include_redis %}
+      REDIS_URL: redis://redis:6379/0
+{%- endif %}
+{%- if include_postgres or include_redis %}
+    depends_on:
+{%- if include_postgres %}
+      - postgres
+{%- endif %}
+{%- if include_redis %}
+      - redis
+{%- endif %}
+{%- endif %}
+    volumes:
+      - .:/app
+    deploy:
+      resources:
+        limits:
+          cpus: "{{ cpu_limit }}"
+          memory: "{{ mem_limit_mb }}M"
+{% if include_postgres %}
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: devenv
+      POSTGRES_PASSWORD: devenv
+      POSTGRES_DB: devenv
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+{% endif %}
+{%- if include_redis %}
+
+  redis:
+    image: redis:7
+{%- endif %}
+{% if include_postgres %}
+volumes:
+  pgdata:
+{% endif %}

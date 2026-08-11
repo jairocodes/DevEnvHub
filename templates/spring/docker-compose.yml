@@ -14,6 +14,11 @@ services:
       - redis
     volumes:
       - .:/app
+    deploy:
+      resources:
+        limits:
+          cpus: "{{ cpu_limit }}"
+          memory: "{{ mem_limit_mb }}M"
 
   postgres:
     image: postgres:16

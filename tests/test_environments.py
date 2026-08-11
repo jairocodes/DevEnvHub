@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from api.core.config import settings
 from api.db.session import Base, get_db
 from api.main import app
 from api.routers import environments as environments_router
@@ -109,6 +110,27 @@ def test_create_environment_with_spring_template(monkeypatch) -> None:
     )
     assert response.status_code == 201
     assert response.json()["port"] == 8081
+
+
+def test_environment_quota_enforced(monkeypatch) -> None:
+    monkeypatch.setattr(
+        environments_router.compose_service,
+        "prepare_workspace",
+        lambda *args, **kwargs: Path("fake-compose.yml"),
+    )
+    monkeypatch.setattr(environments_router.compose_service, "up", lambda *args, **kwargs: None)
+
+    headers = _auth_headers("quota-test@example.com")
+    for i in range(settings.default_max_environments):
+        response = client.post(
+            "/environments", json={"name": f"quota-env-{i}", "template": "node"}, headers=headers
+        )
+        assert response.status_code == 201
+
+    over_quota_response = client.post(
+        "/environments", json={"name": "one-too-many", "template": "node"}, headers=headers
+    )
+    assert over_quota_response.status_code == 429
 
 
 def test_create_environment_unknown_template() -> None:
